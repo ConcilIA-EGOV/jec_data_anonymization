@@ -4,7 +4,10 @@
 import glob
 import random
 import re
+import nltk
+from nltk.corpus import stopwords
 
+nltk.download('stopwords')
 
 def powerset(some_list):
     # Returns all subsets of size 0 - len(some_list) for some_list
@@ -100,6 +103,7 @@ def anonymize(text):
     tokens_replace = {}
 
     new_token = text
+    stop_words_pt = stopwords.words('portuguese')
 
     # Remove the author from the text
     if starts_with_any_token_from_list(proc_text, AUTHOR_TOKENS):
@@ -112,7 +116,13 @@ def anonymize(text):
         for token in tokens:
             subtokens = get_powerset(token.split(" "))
             for subtoken in subtokens:
-                tokens_replace[subtoken] = "AUTOR"
+
+                # Check whether the subtoken is a stopword
+                # Important when these words appear in the name
+                # Ex: João da Silva.
+                # If we consider "da" as a subtoken, the code will remove it from all the text.
+                if subtoken not in stop_words_pt:
+                    tokens_replace[subtoken] = "AUTOR"
 
     if starts_with_any_token_from_list(proc_text, PARTE_TOKENS):
         found_part = True
@@ -123,8 +133,10 @@ def anonymize(text):
         # TODO: check substring here.
         for token in tokens:
             subtokens = get_powerset(token.split(" "))
+            
             for subtoken in subtokens:
-                tokens_replace[subtoken] = "REU"
+                if subtoken not in stop_words_pt:
+                    tokens_replace[subtoken] = "REU"
 
     # Here we try to find and replace the process number
     found_num_proc, text_new = find_proc_num(text)
@@ -194,8 +206,8 @@ def main():
                         text = replace_pattern(text, key,
                                                replace_tokens[key] + " ")
 
-                    if not text.lower().strip().startswith("trato"):
-                        fp_out.write(text)
+                    
+                    fp_out.write(text)
 
                 # Em alguns casos não foi possível encontrar o autor,
                 # partes e número do processo.
