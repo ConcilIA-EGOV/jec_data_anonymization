@@ -5,9 +5,11 @@ import glob
 import random
 import re
 import nltk
+import tqdm
 from nltk.corpus import stopwords
 
 nltk.download('stopwords')
+
 
 def powerset(some_list):
     # Returns all subsets of size 0 - len(some_list) for some_list
@@ -41,7 +43,8 @@ AUTHOR_TOKENS = [
     "autora:",
     "requerentes:",
     "autores:",
-    "autoras:"
+    "autoras:",
+    "exequente:"
 ]
 
 PARTE_TOKENS = [
@@ -53,7 +56,8 @@ PARTE_TOKENS = [
     "requeridos:",
     "requerido(a)(s):",
     "rés:",
-    "réus:"
+    "réus:",
+    "executado:"
 ]
 
 NUMBER_TOKENS = [
@@ -120,7 +124,8 @@ def anonymize(text):
                 # Check whether the subtoken is a stopword
                 # Important when these words appear in the name
                 # Ex: João da Silva.
-                # If we consider "da" as a subtoken, the code will remove it from all the text.
+                # If we consider "da" as a subtoken,
+                # the code will remove it from all the text.
                 if subtoken not in stop_words_pt:
                     tokens_replace[subtoken] = "AUTOR"
 
@@ -133,7 +138,6 @@ def anonymize(text):
         # TODO: check substring here.
         for token in tokens:
             subtokens = get_powerset(token.split(" "))
-            
             for subtoken in subtokens:
                 if subtoken not in stop_words_pt:
                     tokens_replace[subtoken] = "REU"
@@ -167,7 +171,7 @@ def main():
     # Shuffle the list of files, to avoid order bias issues.
     random.shuffle(list_files)
 
-    for file_path in list_files:
+    for file_path in tqdm.tqdm(list_files):
         with open(file_path, "r", encoding="utf-8") as fp:
             with open(file_path.replace("raw", "anonymized"), "w+") as fp_out:
 
@@ -206,7 +210,6 @@ def main():
                         text = replace_pattern(text, key,
                                                replace_tokens[key] + " ")
 
-                    
                     fp_out.write(text)
 
                 # Em alguns casos não foi possível encontrar o autor,
