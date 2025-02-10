@@ -185,7 +185,7 @@ venv/
 .env/
 
 # Data files
-data/
+data/*.txt
 *.csv
 *.tsv
 *.xlsx
