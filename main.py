@@ -33,8 +33,10 @@ def powerset(some_list):
 def get_powerset(vector):
     # Function to get all the subsets of a given vector.
     power_set = [" ".join(subset) for subset in powerset(vector)[1:]]
+    stop_words_pt = stopwords.words('portuguese') + ["", "-", " e", "e"]
+    power_set = [i for i in power_set if i not in stop_words_pt]
+    power_set.reverse()
     return power_set
-
 
 AUTHOR_TOKENS = [
     "autor:",
@@ -101,21 +103,21 @@ def anonymize(text):
 
     # Convert text to lowercase and remove spaces
     # and newlines in the beginning and ending.
-    proc_text = text.lower().strip()
-
+    text = text.replace("  ", " ").lower()
+    proc_text = text.strip()
+    
     tokens = text.split(":")
     tokens_replace = {}
 
     new_token = text
-    stop_words_pt = stopwords.words('portuguese')
 
     # Remove the author from the text
+    # TODO: Transformar esta parte em uma função separada
     if starts_with_any_token_from_list(proc_text, AUTHOR_TOKENS):
         new_token = tokens[0] + ": AUTOR\n\n"
 
         found_author = True
-
-        # TODO: check substring here.
+        
         tokens = [token.strip() for token in tokens[1:]]
         for token in tokens:
             subtokens = get_powerset(token.split(" "))
@@ -126,21 +128,18 @@ def anonymize(text):
                 # Ex: João da Silva.
                 # If we consider "da" as a subtoken,
                 # the code will remove it from all the text.
-                if subtoken not in stop_words_pt:
-                    tokens_replace[subtoken] = "AUTOR"
+                tokens_replace[subtoken] = "AUTOR"
 
     if starts_with_any_token_from_list(proc_text, PARTE_TOKENS):
         found_part = True
         new_token = tokens[0] + ": REU\n\n"
-
+        
         tokens = [token.strip() for token in tokens[1:]]
 
-        # TODO: check substring here.
         for token in tokens:
             subtokens = get_powerset(token.split(" "))
             for subtoken in subtokens:
-                if subtoken not in stop_words_pt:
-                    tokens_replace[subtoken] = "REU"
+                tokens_replace[subtoken] = "REU"
 
     # Here we try to find and replace the process number
     found_num_proc, text_new = find_proc_num(text)
@@ -181,9 +180,9 @@ def main():
                 replace_tokens = {}
 
                 # Iterate over all lines of the file.
+                # TODO: alterar para que leia todas as linhas de uma vez.
                 for line in fp:
 
-                    # TODO: here it returns the author, part of process number
                     (found_author, found_part,
                      found_num_proc, replace_token, text) = anonymize(line)
 
@@ -198,24 +197,14 @@ def main():
                     # For each of the tokens to replace (in the whole text)
                     # Try to replace in all cases (Uppercase,
                     # lowercase, capitalize, etc.)
-                    # TODO: Maykon: provavelmente, seria bom você dar uma
-                    # TODO: Maykon: checada no "replace_tokens"
-                    # TODO: Maykon: ela é um dict que guarda todas as
-                    # TODO: Maykon: substituições para a anonimização.
-                    # Seria o caso de adicionar neste
-                    # dicionario os subconjuntos.
                     ordered_keys = list(replace_tokens.keys())
                     ordered_keys.sort(key=len, reverse=True)
                     for key in ordered_keys:
                         text = replace_pattern(text, key,
-                                               replace_tokens[key] + " ")
+                                               replace_tokens[key])
 
                     fp_out.write(text)
 
-                # Em alguns casos não foi possível encontrar o autor,
-                # partes e número do processo.
-                # TODO: checar quais processos o processo falhou e porque?
-                # Faltou algum padrão que não checamos?
                 if not f_author_doc:
                     print("-" * 10, file_path, "-" * 10)
                     print("not found author")
